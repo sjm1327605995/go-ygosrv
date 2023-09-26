@@ -1,6 +1,7 @@
 package duel
 
 import (
+	"fmt"
 	"go-ygosrv/core/msg/stoc"
 	"go-ygosrv/utils"
 )
@@ -31,7 +32,12 @@ func (s *SingleDuel) Chat(dp *DuelPlayer, msg []byte) {
 		Msg:    msg,
 	}
 
-	SendBufferToPlayer(dp, stoc.STOC_CHAT)
+	err := SendBufferToPlayer(dp, stoc.STOC_CHAT, scc.Player, scc.Msg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 }
 
 func (receiver *SingleDuel) JoinGame(dp *DuelPlayer, reader *utils.BitReader) {

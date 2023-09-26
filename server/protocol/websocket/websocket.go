@@ -8,8 +8,7 @@ import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"go-ygosrv/core"
-	"go-ygosrv/utils"
+	"go-ygosrv/core/duel"
 	"io"
 	"time"
 )
@@ -30,12 +29,12 @@ func (wss *WsServer) OnBoot(eng gnet.Engine) gnet.Action {
 }
 
 func (wss *WsServer) OnOpen(c gnet.Conn) ([]byte, gnet.Action) {
-	wsClient := &WsContext{ctx: core.Context{}}
-	wsClient.ctx.SetWriter(func(conn gnet.Conn, arr []byte) error {
-		return wsutil.WriteServerMessage(c, ws.OpBinary, arr)
-	})
+	player := &duel.DuelPlayer{
+		Conn: c,
+	}
+	wsClient := &WsContext{player: player}
 	c.SetContext(wsClient)
-	wsClient.ctx.Open()
+
 	return nil, gnet.None
 }
 
@@ -43,8 +42,7 @@ func (wss *WsServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		logging.Warnf("error occurred on connection=%s, %v\n", c.RemoteAddr().String(), err)
 	}
-	ctx := c.Context().(*WsContext).ctx
-	ctx.OnClose()
+	//TODO 用户离开后离开房间
 	logging.Infof("conn[%v] disconnected", c.RemoteAddr().String())
 	return gnet.None
 }
@@ -70,18 +68,12 @@ func (wss *WsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return
 	}
 	for _, message := range messages {
-
 		packetLen := int(binary.LittleEndian.Uint16(message.Payload))
 		if packetLen > len(message.Payload)-1 {
 			logging.Infof("conn[%v] refuse packet", c.RemoteAddr().String(), message.Payload)
 			return
 		}
-		ctx.ctx.HandleMessage(c, utils.NewBitReader(message.Payload[2:packetLen], packetLen))
-		//err = wsutil.WriteServerMessage(c, ws.OpBinary, resp)
-		//if err != nil {
-		//	logging.Infof("conn[%v] [err=%v]", c.RemoteAddr().String(), err.Error())
-		//	return gnet.Close
-		//}
+		duel.HandleCTOSPacket(ctx.player, message.Payload)
 	}
 	return gnet.None
 }
@@ -94,7 +86,7 @@ type WsContext struct {
 	upgraded bool         // 链接是否升级
 	buf      bytes.Buffer // 从实际socket中读取到的数据缓存
 	wsMsgBuf wsMessageBuf // ws 消息缓存
-	ctx      core.Context
+	player   *duel.DuelPlayer
 }
 
 type wsMessageBuf struct {

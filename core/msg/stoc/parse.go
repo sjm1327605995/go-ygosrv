@@ -1,8 +1,9 @@
 package stoc
 
 import (
+	"bytes"
+	"encoding/binary"
 	"go-ygosrv/core/msg/host"
-	"go-ygosrv/utils"
 )
 
 const ChatMsgLimit = 255 * 2
@@ -49,8 +50,14 @@ type Chat struct {
 	Msg    []byte //256 *2 byte
 }
 
-func (c *Chat) SetData(reader *utils.BitReader) {
-	reader.PutUint16(c.Player)
-	copy(reader.Next(0), c.Msg)
+//不使用额外空间原地复制。减少性能浪费
+
+func (c *Chat) Parse(buff *bytes.Buffer) error {
+
+	err := binary.Write(buff, binary.LittleEndian, c.Player)
+	if err != nil {
+		return err
+	}
+	return binary.Write(buff, binary.LittleEndian, c.Msg)
 
 }

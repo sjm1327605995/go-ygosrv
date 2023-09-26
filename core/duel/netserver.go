@@ -1,18 +1,26 @@
 package duel
 
 import (
+	"bytes"
 	"encoding/binary"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 )
 
-func SendBufferToPlayer(dp *DuelPlayer, extraDataLen int, proto uint8, arr ...byte) error {
-	var res = make([]byte, extraDataLen+3)
-	binary.LittleEndian.PutUint16(arr, uint16(extraDataLen+1))
-	res[2] = proto
-	if extraDataLen > 0 {
-		copy(res[3:], arr)
+func SendBufferToPlayer(dp *DuelPlayer, proto uint8, data ...interface{}) error {
+	b := bytes.NewBuffer(make([]byte, 2, 50))
+	err := binary.Write(b, binary.LittleEndian, proto)
+	if err != nil {
+		return err
 	}
+	for i := range data {
+		err = binary.Write(b, binary.LittleEndian, data[i])
+		if err != nil {
+			return err
+		}
+	}
+	arr := b.Bytes()
+	binary.LittleEndian.PutUint16(arr, uint16(b.Len()-2))
 	switch dp.Protocol {
 	//Websocket
 	case 0:
@@ -23,4 +31,10 @@ func SendBufferToPlayer(dp *DuelPlayer, extraDataLen int, proto uint8, arr ...by
 		return err
 	}
 	return nil
+}
+func HandleCTOSPacket(player *DuelPlayer, data []byte) {
+	var (
+		buf=bytes.NewBuffer(data)
+	)
+	proto:=binary.LittleEndian.
 }
