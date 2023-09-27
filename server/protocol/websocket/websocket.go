@@ -73,7 +73,7 @@ func (wss *WsServer) OnTraffic(c gnet.Conn) (action gnet.Action) {
 			logging.Infof("conn[%v] refuse packet", c.RemoteAddr().String(), message.Payload)
 			return
 		}
-		duel.HandleCTOSPacket(ctx.player, message.Payload)
+		duel.HandleCTOSPacket(ctx.player, message.Payload[2:])
 	}
 	return gnet.None
 }

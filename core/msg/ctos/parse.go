@@ -20,11 +20,11 @@ func (p *PlayerInfo) Parse(b *utils.BitReader) (err error) {
 }
 
 type TPResult struct {
-	res uint8
+	Res uint8
 }
 
 func (h *TPResult) Parse(b *utils.BitReader) (err error) {
-	return utils.GetData(b, &h.res)
+	return utils.GetData(b, &h.Res)
 
 }
 
@@ -76,5 +76,14 @@ type Kick struct {
 
 func (h *Kick) Parse(b *utils.BitReader) (err error) {
 	return utils.GetData(b, &h.Pos)
+
+}
+
+type HandResult struct {
+	Res uint8
+}
+
+func (h *HandResult) Parse(b *utils.BitReader) (err error) {
+	return utils.GetData(b, &h.Res)
 
 }
