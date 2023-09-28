@@ -82,17 +82,18 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 		}
 
 	case ctos.CTOS_JOIN_GAME: //TODO 现在如果game为空就进行初始化
-		if dp.game != nil {
+		if dp.game == nil {
+
 			return
 		}
+
 		var joinGame ctos.JoinGame
 		err := joinGame.Parse(buf)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		dp.game = &SingleDuel{}
-		dp.game.JoinGame(dp, buf)
+
 	}
 }
 func WSStr(arr []byte) []byte {

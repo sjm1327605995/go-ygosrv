@@ -42,6 +42,8 @@ func (wss *WsServer) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		logging.Warnf("error occurred on connection=%s, %v\n", c.RemoteAddr().String(), err)
 	}
+	ctx := c.Context().(*WsContext)
+	duel.Leave(ctx.player)
 	//TODO 用户离开后离开房间
 	logging.Infof("conn[%v] disconnected", c.RemoteAddr().String())
 	return gnet.None

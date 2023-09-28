@@ -2,13 +2,14 @@ package duel
 
 import (
 	"bytes"
-	"fmt"
 	"go-ygosrv/core/msg/stoc"
 	"go-ygosrv/core/ygocore"
+	"sync"
 )
 
 type SingleDuel struct {
 	DuelModeBase
+	locker       sync.Locker
 	players      [2]*DuelPlayer
 	pplayers     [2]*DuelPlayer
 	Ready        [2]bool
@@ -33,12 +34,14 @@ func (s *SingleDuel) Chat(dp *DuelPlayer, msg BytesMessage) {
 
 // JoinGame TODO 并发加入房间的问题
 func (s *SingleDuel) JoinGame(dp *DuelPlayer, reader *bytes.Buffer) {
+	s.locker.Lock()
+	defer s.locker.Unlock()
 	if s.HostPlayer == nil {
 		s.HostPlayer = dp
 	}
+
 	s.pplayers[0] = dp
 	s.pDuel = ygocore.CreateGame()
-	fmt.Println(s.pDuel)
 }
 
 func (receiver *SingleDuel) LeaveGame(dp *DuelPlayer) {
