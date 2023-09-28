@@ -1,9 +1,10 @@
 package duel
 
 import (
+	"bytes"
 	"fmt"
 	"go-ygosrv/core/msg/stoc"
-	"go-ygosrv/utils"
+	"go-ygosrv/core/ygocore"
 )
 
 type SingleDuel struct {
@@ -26,23 +27,18 @@ type SingleDuel struct {
 	TimeElapsed int16
 }
 
-func (s *SingleDuel) Chat(dp *DuelPlayer, msg []byte) {
-	var scc = stoc.Chat{
-		Player: dp.Type,
-		Msg:    msg,
-	}
-
-	err := SendBufferToPlayer(dp, stoc.STOC_CHAT, scc.Player, scc.Msg)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+func (s *SingleDuel) Chat(dp *DuelPlayer, msg BytesMessage) {
+	_ = s.Write(dp, stoc.STOC_CHAT, msg)
 }
 
-func (receiver *SingleDuel) JoinGame(dp *DuelPlayer, reader *utils.BitReader) {
-	//TODO implement me
-	panic("implement me")
+// JoinGame TODO 并发加入房间的问题
+func (s *SingleDuel) JoinGame(dp *DuelPlayer, reader *bytes.Buffer) {
+	if s.HostPlayer == nil {
+		s.HostPlayer = dp
+	}
+	s.pplayers[0] = dp
+	s.pDuel = ygocore.CreateGame()
+	fmt.Println(s.pDuel)
 }
 
 func (receiver *SingleDuel) LeaveGame(dp *DuelPlayer) {
@@ -65,7 +61,7 @@ func (receiver *SingleDuel) PlayerKick(dp *DuelPlayer, pos uint8) {
 	panic("implement me")
 }
 
-func (receiver *SingleDuel) UpdateDeck(dp *DuelPlayer, reader *utils.BitReader) {
+func (receiver *SingleDuel) UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -90,7 +86,7 @@ func (receiver *SingleDuel) Process() {
 	panic("implement me")
 }
 
-func (receiver *SingleDuel) Analyze(reader *utils.BitReader) int {
+func (receiver *SingleDuel) Analyze(reader *bytes.Buffer) int {
 	//TODO implement me
 	panic("implement me")
 }
@@ -100,7 +96,7 @@ func (receiver *SingleDuel) Surrender(dp *DuelPlayer) {
 	panic("implement me")
 }
 
-func (receiver *SingleDuel) GetResponse(dp *DuelPlayer, reader *utils.BitReader) {
+func (receiver *SingleDuel) GetResponse(dp *DuelPlayer, reader *bytes.Buffer) {
 	//TODO implement me
 	panic("implement me")
 }

@@ -50,14 +50,22 @@ type Chat struct {
 	Msg    []byte //256 *2 byte
 }
 
-//不使用额外空间原地复制。减少性能浪费
-
-func (c *Chat) Parse(buff *bytes.Buffer) error {
+// ToBytes 不使用额外空间原地复制。减少性能浪费
+func (c *Chat) ToBytes(buff *bytes.Buffer) error {
 
 	err := binary.Write(buff, binary.LittleEndian, c.Player)
 	if err != nil {
 		return err
 	}
-	return binary.Write(buff, binary.LittleEndian, c.Msg)
+	return binary.Write(buff, binary.LittleEndian, WSStr(c.Msg))
 
+}
+func WSStr(arr []byte) []byte {
+	i := 0
+	for ; i < len(arr); i += 2 {
+		if arr[i] == 0 && arr[i+1] == 0 {
+			break
+		}
+	}
+	return arr[:i+2]
 }

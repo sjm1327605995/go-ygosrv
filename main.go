@@ -1,9 +1,15 @@
 package main
 
+/*
+#cgo CFLAGS: -I./core/ygocore
+#cgo LDFLAGS: -L./ -locgcore
+*/
+import "C"
 import (
 	"flag"
 	"fmt"
 	"github.com/panjf2000/gnet/v2"
+	"go-ygosrv/core/ygocore"
 	"go-ygosrv/server/protocol/tcp"
 	"go-ygosrv/server/protocol/websocket"
 	"log"
@@ -35,6 +41,7 @@ func main() {
 		panic("unknown protocol")
 
 	}
-	// Start serving!
+
+	ygocore.InitCore()
 	log.Println("server exits:", gnet.Run(srv, addr, gnet.WithMulticore(multicore), gnet.WithReusePort(true), gnet.WithTicker(false)))
 }

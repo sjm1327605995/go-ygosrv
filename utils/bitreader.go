@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 )
@@ -80,18 +81,33 @@ func (b *BitReader) PutUint64(val uint64) {
 	b.PutOffsetUint64(b.pos, val)
 }
 
-func GetData(b *BitReader, ptrs ...interface{}) (err error) {
+func GetData(b *bytes.Buffer, ptrs ...interface{}) (err error) {
 
 	for i := range ptrs {
 		switch data := ptrs[i].(type) {
 		case *uint8:
-			*data = b.ReadUint8()
+			*data, err = b.ReadByte()
+			if err != nil {
+				return err
+			}
 		case *uint16:
-			*data = b.ReadUint16()
+			arr := b.Next(2)
+			if len(arr) != 2 {
+				return errors.New("too small")
+			}
+			*data = binary.LittleEndian.Uint16(arr)
 		case *uint32:
-			*data = b.ReadUint32()
+			arr := b.Next(4)
+			if len(arr) != 4 {
+				return errors.New("too small")
+			}
+			*data = binary.LittleEndian.Uint32(arr)
 		case *uint64:
-			*data = b.ReadUint64()
+			arr := b.Next(8)
+			if len(arr) != 8 {
+				return errors.New("too small")
+			}
+			*data = binary.LittleEndian.Uint64(arr)
 		default:
 			return errors.New("unknown type")
 		}

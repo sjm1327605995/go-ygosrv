@@ -2,35 +2,16 @@ package duel
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"go-ygosrv/core/msg/ctos"
 	"go-ygosrv/core/msg/stoc"
-	"go-ygosrv/utils"
 )
 
 var model DuelModeBase
 
-func SendBufferToPlayer(dp *DuelPlayer, proto uint8, data ...interface{}) error {
-	b := bytes.NewBuffer(make([]byte, 2, 50))
-	err := binary.Write(b, binary.LittleEndian, proto)
-	if err != nil {
-		return err
-	}
-	for i := range data {
-		err = binary.Write(b, binary.LittleEndian, data[i])
-		if err != nil {
-			return err
-		}
-	}
-	arr := b.Bytes()
-	binary.LittleEndian.PutUint16(arr, uint16(b.Len()-2))
-	return dp.game.Write(dp, arr)
-}
-
 func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 	var (
-		buf = utils.NewBitReader(data[1:], len(data)-1)
+		buf = bytes.NewBuffer(data[1:])
 	)
 
 	pktType := data[0]
@@ -50,23 +31,15 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 		}
 		dp.game.TimeConfirm(dp)
 	case ctos.CTOS_CHAT:
-		arr := WSStr(buf.Next(256 * 2))
-		buff := bytes.NewBuffer(make([]byte, 0, uint16(len(arr)+3+2)))
-		err := binary.Write(buff, binary.LittleEndian, uint16(4+len(arr)+1))
-		if err != nil {
-			fmt.Println(err)
-		}
-		err = binary.Write(buff, binary.LittleEndian, stoc.STOC_CHAT)
-		if err != nil {
-			fmt.Println(err)
-		}
+		//客户端发过来的消息
 		var chat = stoc.Chat{
 			Player: dp.Type,
-			Msg:    arr,
+			Msg:    buf.Bytes(),
 		}
-
-		_ = binary.Write(buff, binary.LittleEndian, &chat)
-		model.Chat(dp, buff)
+		if dp.game != nil {
+			//开始了游戏
+			dp.game.Chat(dp, &chat)
+		}
 	case ctos.CTOS_UPDATE_DECK:
 		if dp.game == nil {
 			return
@@ -109,7 +82,17 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 		}
 
 	case ctos.CTOS_JOIN_GAME: //TODO 现在如果game为空就进行初始化
-
+		if dp.game != nil {
+			return
+		}
+		var joinGame ctos.JoinGame
+		err := joinGame.Parse(buf)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		dp.game = &SingleDuel{}
+		dp.game.JoinGame(dp, buf)
 	}
 }
 func WSStr(arr []byte) []byte {

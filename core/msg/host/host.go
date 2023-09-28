@@ -1,6 +1,7 @@
 package host
 
 import (
+	"bytes"
 	"go-ygosrv/utils"
 )
 
@@ -19,7 +20,7 @@ type HostInfo struct {
 	TimeLimit     uint16
 }
 
-func (h *HostInfo) Parse(b *utils.BitReader) (err error) {
+func (h *HostInfo) Parse(b *bytes.Buffer) (err error) {
 	return utils.GetData(b, &h.Lflist, &h.Rule, &h.Mode, &h.DuleRule, &h.NoCheckDeck, &h.NoShuffleDeck,
 		&h.StartLp, &h.StartHand, &h.DrawCount, &h.TimeLimit)
 
@@ -34,7 +35,7 @@ type HostPacket struct {
 	Host       HostInfo
 }
 
-func (h *HostPacket) Parse(b *utils.BitReader) (err error) {
+func (h *HostPacket) Parse(b *bytes.Buffer) (err error) {
 
 	err = utils.GetData(b, &h.Identifier, &h.Version, &h.Port, &h.IpAddr)
 	if err != nil {
@@ -52,7 +53,7 @@ type HostRequest struct {
 	Identifier uint16
 }
 
-func (h *HostRequest) Parse(b *utils.BitReader) (err error) {
+func (h *HostRequest) Parse(b *bytes.Buffer) (err error) {
 	return utils.GetData(b, &h.Identifier)
 
 }
@@ -61,7 +62,7 @@ type HandResult struct {
 	res uint8
 }
 
-func (h *HandResult) Parse(b *utils.BitReader) (err error) {
+func (h *HandResult) Parse(b *bytes.Buffer) (err error) {
 	return utils.GetData(b, &h.res)
 
 }
