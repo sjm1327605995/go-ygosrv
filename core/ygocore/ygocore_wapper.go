@@ -1,6 +1,7 @@
 package ygocore
 
 /*
+#cgo LDFLAGS: -L ./  -locgcore
 #include "ocgcore.h"
 */
 import "C"

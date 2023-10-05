@@ -9,7 +9,7 @@ const StrLimit = 40
 
 type HostInfo struct {
 	Lflist        uint16
-	Rule          uint8
+	Rule          uint16
 	Mode          uint8
 	DuleRule      uint8
 	NoCheckDeck   bool
@@ -41,7 +41,7 @@ func (h *HostPacket) Parse(b *bytes.Buffer) (err error) {
 	if err != nil {
 		return
 	}
-	h.Name, err = utils.UTF16ToStr(b.Next(StrLimit))
+	_, h.Name, err = utils.UTF16ToStr(b.Next(StrLimit))
 	if err != nil {
 		return
 	}

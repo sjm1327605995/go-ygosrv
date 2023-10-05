@@ -9,12 +9,12 @@ import (
 	"io"
 )
 
-func UTF16ToStr(arr []byte) (string, error) {
+func UTF16ToStr(arr []byte) ([]byte, string, error) {
 	if len(arr)%2 != 0 {
-		return "", errors.New("not utf16")
+		return nil, "", errors.New("not utf16")
 	}
 	if len(arr) == 0 {
-		return "", nil
+		return nil, "", nil
 	}
 	var last int
 	for ; last < len(arr); last += 2 {
@@ -29,9 +29,9 @@ func UTF16ToStr(arr []byte) (string, error) {
 	str, err := io.ReadAll(transform.NewReader(bytes.NewReader(arr[:last]), decoder))
 	if err != nil {
 		fmt.Println("解码失败:", err)
-		return "", err
+		return nil, "", err
 	}
-	return string(str), nil
+	return arr[:last], string(str), nil
 }
 func UTF16ToStrArr(arr []byte) ([]byte, error) {
 	if len(arr)%2 != 0 {

@@ -12,6 +12,7 @@ import (
 
 type DuelPlayer struct {
 	Name     string //40 byte
+	RealName []byte
 	game     DuelMode
 	Type     uint16
 	Status   uint8
@@ -157,4 +158,12 @@ func (d *DuelModeBase) Write(dp *DuelPlayer, proto uint8, msg BytesMessage) erro
 		return err
 	}
 	return nil
+}
+
+type BytesMsg []byte
+
+func (c *BytesMsg) ToBytes(buff *bytes.Buffer) error {
+	_, err := buff.Write(*c)
+	return err
+
 }

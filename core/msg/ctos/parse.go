@@ -7,7 +7,8 @@ import (
 )
 
 type PlayerInfo struct {
-	Name string
+	Name     string
+	RealName []byte
 }
 
 const (
@@ -16,7 +17,7 @@ const (
 
 func (p *PlayerInfo) Parse(b *bytes.Buffer) (err error) {
 	// 将二进制数组转换为字符串
-	p.Name, err = utils.UTF16ToStr(b.Next(StrLimit))
+	p.RealName, p.Name, err = utils.UTF16ToStr(b.Next(StrLimit))
 	return
 }
 
@@ -40,11 +41,11 @@ func (h *CreateGame) Parse(b *bytes.Buffer) (err error) {
 	if err != nil {
 		return err
 	}
-	h.Name, err = utils.UTF16ToStr(b.Next(StrLimit))
+	_, h.Name, err = utils.UTF16ToStr(b.Next(StrLimit))
 	if err != nil {
 		return
 	}
-	h.Pass, err = utils.UTF16ToStr(b.Next(StrLimit))
+	_, h.Pass, err = utils.UTF16ToStr(b.Next(StrLimit))
 	if err != nil {
 		return
 	}
@@ -64,7 +65,7 @@ func (h *JoinGame) Parse(b *bytes.Buffer) (err error) {
 	if err != nil {
 		return
 	}
-	h.Pass, err = utils.UTF16ToStr(b.Next(StrLimit))
+	_, h.Pass, err = utils.UTF16ToStr(b.Next(StrLimit))
 	if err != nil {
 		return
 	}

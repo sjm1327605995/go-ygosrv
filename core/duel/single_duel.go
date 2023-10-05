@@ -3,7 +3,6 @@ package duel
 import (
 	"bytes"
 	"go-ygosrv/core/msg/stoc"
-	"go-ygosrv/core/ygocore"
 	"sync"
 )
 
@@ -41,12 +40,14 @@ func (s *SingleDuel) JoinGame(dp *DuelPlayer, reader *bytes.Buffer) {
 	}
 
 	s.pplayers[0] = dp
-	s.pDuel = ygocore.CreateGame()
+	//s.pDuel = ygocore.CreateGame()
+	//var pkg stoc.JoinGame
 }
 
-func (receiver *SingleDuel) LeaveGame(dp *DuelPlayer) {
-	//TODO implement me
-	panic("implement me")
+func (s *SingleDuel) LeaveGame(dp *DuelPlayer) {
+	s.locker.Lock()
+	defer s.locker.Unlock()
+	//TODO 移除用户判断
 }
 
 func (receiver *SingleDuel) ToObserver(dp *DuelPlayer) {

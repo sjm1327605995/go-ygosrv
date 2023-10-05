@@ -1,8 +1,7 @@
 package main
 
 /*
-#cgo CFLAGS: -I./core/ygocore
-#cgo LDFLAGS: -L./ -locgcore
+#cgo LDFLAGS: -L ./  -locgcore
 */
 import "C"
 import (
@@ -26,7 +25,7 @@ func main() {
 	// Example command: go run main.go --port 8080 --multicore=true
 	flag.IntVar(&port, "port", 8080, "server port")
 	flag.BoolVar(&multicore, "multicore", true, "multicore")
-	flag.StringVar(&protocol, "protocol", "ws", "server protocol [ws,tcp]")
+	flag.StringVar(&protocol, "protocol", "tcp", "server protocol [ws,tcp]")
 	flag.Parse()
 	addr := fmt.Sprintf("tcp://127.0.0.1:%d", port)
 	//TCP 和UDP 都支持。对TCP分装的。可以通过TCP添加一层协议解析获取内容
