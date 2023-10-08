@@ -51,14 +51,14 @@ func (wss *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	switch ws.protocol {
 	case 0: //等待解析
 		//不包含websocket当做tcp处理
-		if !bytes.Contains(ws.buf.Bytes(), []byte("Upgrade: websocket")) {
+		if bytes.Contains(ws.buf.Bytes(), []byte("Upgrade: websocket")) {
 			ws.protocol = duel.WS
 			ws.player.Protocol = duel.WS
-			ws.Decoder = &tcp.TCPDecoder{}
+			ws.Decoder = &websocket.WsDecoder{}
 		} else {
 			ws.protocol = duel.TCP
 			ws.player.Protocol = duel.TCP
-			ws.Decoder = &websocket.WsDecoder{}
+			ws.Decoder = &tcp.TCPDecoder{}
 		}
 	case 1, 2:
 

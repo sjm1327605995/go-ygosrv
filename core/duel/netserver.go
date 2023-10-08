@@ -27,54 +27,54 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 	}
 
 	switch pktType {
-	case ctos.CTOS_RESPONSE:
-		if dp.game == nil || dp.game.PDuel() == 0 {
-			return
-		}
-		dp.game.GetResponse(dp, buf)
-	case ctos.CTOS_TIME_CONFIRM:
-		if dp.game == nil || dp.game.PDuel() == 0 {
-			return
-		}
-		dp.game.TimeConfirm(dp)
-	case ctos.CTOS_CHAT:
-		//客户端发过来的消息
-		var chat = stoc.Chat{
-			Player: dp.Type,
-			Msg:    buf.Bytes(),
-		}
-		if dp.game != nil {
-			//开始了游戏
-			dp.game.Chat(dp, &chat)
-		}
-	case ctos.CTOS_UPDATE_DECK:
-		if dp.game == nil {
-			return
-		}
-
-		dp.game.UpdateDeck(dp, buf)
-	case ctos.CTOS_HAND_RESULT:
-		if dp.game == nil {
-			return
-		}
-		var tpRes ctos.HandResult
-		err := tpRes.Parse(buf)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		dp.game.HandResult(dp, tpRes.Res)
-	case ctos.CTOS_TP_RESULT:
-		if dp.game == nil {
-			return
-		}
-		var pkt ctos.TPResult
-		err := pkt.Parse(buf)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		dp.game.TPResult(dp, pkt.Res)
+	//case ctos.CTOS_RESPONSE:
+	//	if dp.Room.Game == nil || dp.game.PDuel() == 0 {
+	//		return
+	//	}
+	//	dp.Room.GetResponse(dp, buf)
+	//case ctos.CTOS_TIME_CONFIRM:
+	//	if dp.Room == nil || dp.Room.PDuel() == 0 {
+	//		return
+	//	}
+	//	dp.Room.TimeConfirm(dp)
+	//case ctos.CTOS_CHAT:
+	//	//客户端发过来的消息
+	//	var chat = stoc.Chat{
+	//		Player: dp.Type,
+	//		Msg:    buf.Bytes(),
+	//	}
+	//	if dp.game != nil {
+	//		//开始了游戏
+	//		dp.game.Chat(dp, &chat)
+	//	}
+	//case ctos.CTOS_UPDATE_DECK:
+	//	if dp.game == nil {
+	//		return
+	//	}
+	//
+	//	dp.game.UpdateDeck(dp, buf)
+	//case ctos.CTOS_HAND_RESULT:
+	//	if dp.game == nil {
+	//		return
+	//	}
+	//	var tpRes ctos.HandResult
+	//	err := tpRes.Parse(buf)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return
+	//	}
+	//	dp.game.HandResult(dp, tpRes.Res)
+	//case ctos.CTOS_TP_RESULT:
+	//	if dp.game == nil {
+	//		return
+	//	}
+	//	var pkt ctos.TPResult
+	//	err := pkt.Parse(buf)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return
+	//	}
+	//	dp.game.TPResult(dp, pkt.Res)
 	case ctos.CTOS_PLAYER_INFO:
 		var pkt ctos.PlayerInfo
 		err := pkt.Parse(buf)
@@ -104,7 +104,8 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 			duelRoom   = JoinOrCreateRoom(dp)
 			typeChange = stoc.TypeChange{Type: duelRoom.TypeChange(dp)}
 		)
-		dp.game.Write(dp, stoc.STOC_JOIN_GAME, &stoc.JoinGame{Info: host.HostInfo{
+
+		duelRoom.Game.Write(dp, stoc.STOC_JOIN_GAME, &stoc.JoinGame{Info: host.HostInfo{
 			Lflist:        1883389763,
 			Rule:          0,
 			Mode:          0,
@@ -117,15 +118,16 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 			TimeLimit:     240,
 		}})
 		//暂不考虑观战者
-		var scpe stoc.HSPlayerEnter
-		scpe.Pos = uint16(dp.Pos)
+		//var scpe stoc.HSPlayerEnter
+		//scpe.Pos = uint16(dp.Pos)
 
-		dp.game.Write(dp, stoc.STOC_TYPE_CHANGE, &typeChange)
+		duelRoom.Game.Write(dp, stoc.STOC_TYPE_CHANGE, &typeChange)
 		//C++ 和C中都是以0为结尾。为了兼容C所以做的字符串末尾标识
 		s := BytesMsg(append(WSStr(dp.RealName), 0, 0))
-		dp.game.Write(dp, stoc.STOC_HS_PLAYER_ENTER, &s)
+		//
+		duelRoom.Broadcast(stoc.STOC_HS_PLAYER_ENTER, &s)
 	case ctos.CTOS_LEAVE_GAME:
-		dp.game.LeaveGame(dp)
+		//dp.game.LeaveGame(dp)
 
 	}
 }

@@ -8,11 +8,12 @@ type DuelRoom struct {
 	locker     sync.RWMutex
 	Players    map[string]*DuelPlayer
 	HostPlayer *DuelPlayer
+	Game       DuelMode
 }
 
 func JoinOrCreateRoom(dp *DuelPlayer) *DuelRoom {
-	var room = &DuelRoom{}
-	val, has := allDuelRoom.LoadOrStore(dp.Pass, &room)
+	var room = new(DuelRoom)
+	val, has := allDuelRoom.LoadOrStore(dp.Pass, room)
 	if has {
 		room = val.(*DuelRoom)
 	}
@@ -21,6 +22,8 @@ func JoinOrCreateRoom(dp *DuelPlayer) *DuelRoom {
 	if room.Players == nil {
 		room.Players = make(map[string]*DuelPlayer, 2)
 		room.HostPlayer = dp
+		room.Game = &SingleDuel{}
+		dp.Room = room
 	}
 	oldDp, has := room.Players[dp.Name]
 	if has {
@@ -39,4 +42,12 @@ func (r *DuelRoom) TypeChange(dp *DuelPlayer) uint8 {
 		return 0x10
 	}
 	return 0
+}
+func (r *DuelRoom) Broadcast(proto uint8, msg BytesMessage) {
+
+	r.locker.RLock()
+	defer r.locker.RUnlock()
+	for i := range r.Players {
+		_ = r.Game.Write(r.Players[i], proto, msg)
+	}
 }

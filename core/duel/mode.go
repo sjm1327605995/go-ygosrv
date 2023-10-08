@@ -13,13 +13,13 @@ import (
 type DuelPlayer struct {
 	Name     string //40 byte
 	RealName []byte
-	game     DuelMode
 	Type     uint16
 	Status   uint8
 	Protocol uint8
 	Pass     string
 	Conn     gnet.Conn
 	Pos      uint8 // 0 玩家1  1 玩家2
+	Room     *DuelRoom
 }
 
 type DuelMode interface {

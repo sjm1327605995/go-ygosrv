@@ -37,7 +37,9 @@ func (w *WsDecoder) Decode(buff *bytes.Buffer, player *duel.DuelPlayer) gnet.Act
 	if !ok {
 		return gnet.Close
 	}
-
+	if buff.Len() <= 0 {
+		return gnet.None
+	}
 	messages, err := w.readWsMessages()
 	if err != nil {
 		logging.Infof("Error reading message! %v", err)

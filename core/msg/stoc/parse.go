@@ -29,8 +29,8 @@ type JoinGame struct {
 	Info host.HostInfo
 }
 
-func (j JoinGame) ToBytes(buffer *bytes.Buffer) error {
-	return binary.Write(buffer, binary.LittleEndian, buffer)
+func (j *JoinGame) ToBytes(buffer *bytes.Buffer) error {
+	return binary.Write(buffer, binary.LittleEndian, j.Info)
 }
 
 type TypeChange struct {
@@ -38,7 +38,7 @@ type TypeChange struct {
 }
 
 func (t *TypeChange) ToBytes(buffer *bytes.Buffer) error {
-	return binary.Write(buffer, binary.LittleEndian, buffer)
+	return binary.Write(buffer, binary.LittleEndian, t)
 }
 
 //type ExitGame struct {
