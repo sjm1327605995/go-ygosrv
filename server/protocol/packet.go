@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
+	"go-ygosrv/core/duel"
 	"go-ygosrv/server/protocol/tcp"
 	"go-ygosrv/server/protocol/websocket"
 	"time"
@@ -24,7 +25,9 @@ func (wss *Server) OnBoot(eng gnet.Engine) gnet.Action {
 }
 
 func (wss *Server) OnOpen(c gnet.Conn) ([]byte, gnet.Action) {
-	c.SetContext(new(Context))
+	ctx := new(Context)
+	ctx.player = &duel.DuelPlayer{Conn: c}
+	c.SetContext(ctx)
 
 	return nil, gnet.None
 }
@@ -49,10 +52,12 @@ func (wss *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	case 0: //等待解析
 		//不包含websocket当做tcp处理
 		if !bytes.Contains(ws.buf.Bytes(), []byte("Upgrade: websocket")) {
-			ws.protocol = 1
+			ws.protocol = duel.WS
+			ws.player.Protocol = duel.WS
 			ws.Decoder = &tcp.TCPDecoder{}
 		} else {
-			ws.protocol = 2
+			ws.protocol = duel.TCP
+			ws.player.Protocol = duel.TCP
 			ws.Decoder = &websocket.WsDecoder{}
 		}
 	case 1, 2:
@@ -61,7 +66,7 @@ func (wss *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		return gnet.Close
 	}
 
-	return ws.Decoder.Decode(c, &ws.buf)
+	return ws.Decoder.Decode(&ws.buf, ws.player)
 }
 
 func (wss *Server) OnTick() (delay time.Duration, action gnet.Action) {
@@ -69,12 +74,13 @@ func (wss *Server) OnTick() (delay time.Duration, action gnet.Action) {
 }
 
 type Decoder interface {
-	Decode(c gnet.Conn, buffer *bytes.Buffer) gnet.Action
+	Decode(buff *bytes.Buffer, player *duel.DuelPlayer) gnet.Action
 }
 type Context struct {
 	protocol uint8
 	buf      bytes.Buffer // 从实际socket中读取到的数据缓存
 	Decoder  Decoder
+	player   *duel.DuelPlayer
 }
 
 func (w *Context) readBufferBytes(c gnet.Conn) gnet.Action {

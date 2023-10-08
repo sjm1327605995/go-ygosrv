@@ -30,12 +30,15 @@ type JoinGame struct {
 }
 
 func (j JoinGame) ToBytes(buffer *bytes.Buffer) error {
-	//TODO implement me
-	panic("implement me")
+	return binary.Write(buffer, binary.LittleEndian, buffer)
 }
 
 type TypeChange struct {
 	Type uint8
+}
+
+func (t *TypeChange) ToBytes(buffer *bytes.Buffer) error {
+	return binary.Write(buffer, binary.LittleEndian, buffer)
 }
 
 //type ExitGame struct {
@@ -73,4 +76,17 @@ func WSStr(arr []byte) []byte {
 		}
 	}
 	return arr[:i+2]
+}
+
+type HSPlayerEnter struct {
+	Name []byte
+	Pos  uint16
+}
+
+func (c *HSPlayerEnter) ToBytes(buff *bytes.Buffer) error {
+
+	buff.Write(c.Name)
+
+	return binary.Write(buff, binary.LittleEndian, c.Pos)
+
 }

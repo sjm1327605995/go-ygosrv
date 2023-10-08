@@ -17,7 +17,9 @@ type DuelPlayer struct {
 	Type     uint16
 	Status   uint8
 	Protocol uint8
+	Pass     string
 	Conn     gnet.Conn
+	Pos      uint8 // 0 玩家1  1 玩家2
 }
 
 type DuelMode interface {
@@ -150,10 +152,10 @@ func (d *DuelModeBase) Write(dp *DuelPlayer, proto uint8, msg BytesMessage) erro
 	arr[2] = proto
 	switch dp.Protocol {
 	//Websocket
-	case 0:
+	case WS:
 		return wsutil.WriteServerMessage(dp.Conn, ws.OpBinary, arr)
 	//TCP
-	case 1:
+	case TCP:
 		_, err := dp.Conn.Write(arr)
 		return err
 	}

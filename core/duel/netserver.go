@@ -8,6 +8,11 @@ import (
 	"go-ygosrv/core/msg/stoc"
 )
 
+const (
+	WS uint8 = iota + 1
+	TCP
+)
+
 var model DuelModeBase
 
 // HandleCTOSPacket 重构dp结构体优化调用链
@@ -79,22 +84,26 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 		}
 		dp.RealName = pkt.RealName
 		dp.Name = pkt.Name
-	case ctos.CTOS_CREATE_GAME: //TODO 暂时请求未使用到 比较疑惑
-		if dp.game != nil {
-			return
-		}
+	//case ctos.CTOS_CREATE_GAME: //TODO 暂时请求未使用到 比较疑惑
+	//	if dp.game != nil {
+	//		return
+	//	}
 
 	case ctos.CTOS_JOIN_GAME: //TODO 现在如果game为空就进行初始化
 
-		var joinGame ctos.JoinGame
+		var (
+			joinGame ctos.JoinGame
+		)
 		err := joinGame.Parse(buf)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		//}}
-		//暂时不知道什么意思 web客户端未使用到
+		dp.Pass = joinGame.Pass
+		var (
+			duelRoom   = JoinOrCreateRoom(dp)
+			typeChange = stoc.TypeChange{Type: duelRoom.TypeChange(dp)}
+		)
 		dp.game.Write(dp, stoc.STOC_JOIN_GAME, &stoc.JoinGame{Info: host.HostInfo{
 			Lflist:        1883389763,
 			Rule:          0,
@@ -107,7 +116,11 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 			DrawCount:     1,
 			TimeLimit:     240,
 		}})
-		dp.game.Write(dp, stoc.STOC_TYPE_CHANGE, &BytesMsg{16})
+		//暂不考虑观战者
+		var scpe stoc.HSPlayerEnter
+		scpe.Pos = uint16(dp.Pos)
+
+		dp.game.Write(dp, stoc.STOC_TYPE_CHANGE, &typeChange)
 		//C++ 和C中都是以0为结尾。为了兼容C所以做的字符串末尾标识
 		s := BytesMsg(append(WSStr(dp.RealName), 0, 0))
 		dp.game.Write(dp, stoc.STOC_HS_PLAYER_ENTER, &s)

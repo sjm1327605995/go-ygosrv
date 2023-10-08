@@ -16,7 +16,7 @@ type WsDecoder struct {
 	upgraded bool
 	buf      *bytes.Buffer
 	wsMsgBuf wsMessageBuf // ws 消息缓存
-	Player   *duel.DuelPlayer
+
 }
 type wsMessageBuf struct {
 	firstHeader *ws.Header
@@ -32,8 +32,8 @@ var (
 	DataLoseError = errors.New("lost data")
 )
 
-func (w *WsDecoder) Decode(c gnet.Conn, buff *bytes.Buffer) gnet.Action {
-	ok := w.upgrade(c, buff)
+func (w *WsDecoder) Decode(buff *bytes.Buffer, player *duel.DuelPlayer) gnet.Action {
+	ok := w.upgrade(player.Conn, buff)
 	if !ok {
 		return gnet.Close
 	}
@@ -48,14 +48,15 @@ func (w *WsDecoder) Decode(c gnet.Conn, buff *bytes.Buffer) gnet.Action {
 	}
 	for _, message := range messages {
 		if message.OpCode.IsControl() {
-			err = wsutil.HandleClientControlMessage(c, message)
+			err = wsutil.HandleClientControlMessage(player.Conn, message)
 			if err != nil {
 				return gnet.None
 			}
 			continue
 		}
-		if message.OpCode == ws.OpBinary || message.OpCode == ws.OpText {
-			duel.HandleCTOSPacket(w.Player, message.Payload)
+		if message.OpCode == ws.OpBinary {
+
+			duel.HandleCTOSPacket(player, message.Payload[2:])
 		}
 	}
 	return gnet.None
