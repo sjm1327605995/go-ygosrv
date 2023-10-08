@@ -8,12 +8,12 @@ import (
 const StrLimit = 40
 
 type HostInfo struct {
-	Lflist        uint16
+	Lflist        uint32
 	Rule          uint16
 	Mode          uint8
 	DuleRule      uint8
-	NoCheckDeck   bool
-	NoShuffleDeck bool
+	NoCheckDeck   uint16
+	NoShuffleDeck uint16
 	StartLp       uint32
 	StartHand     uint8
 	DrawCount     uint8

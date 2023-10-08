@@ -9,6 +9,7 @@ import (
 type SingleDuel struct {
 	DuelModeBase
 	locker       sync.Locker
+	playerIndex  int
 	players      [2]*DuelPlayer
 	pplayers     [2]*DuelPlayer
 	Ready        [2]bool

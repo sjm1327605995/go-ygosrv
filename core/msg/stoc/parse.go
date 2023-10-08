@@ -29,6 +29,11 @@ type JoinGame struct {
 	Info host.HostInfo
 }
 
+func (j JoinGame) ToBytes(buffer *bytes.Buffer) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 type TypeChange struct {
 	Type uint8
 }

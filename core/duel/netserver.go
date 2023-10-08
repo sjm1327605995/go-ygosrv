@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"go-ygosrv/core/msg/ctos"
+	"go-ygosrv/core/msg/host"
 	"go-ygosrv/core/msg/stoc"
 )
 
 var model DuelModeBase
 
-//HandleCTOSPacket 重构dp结构体优化调用链
+// HandleCTOSPacket 重构dp结构体优化调用链
 func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 	var (
 		buf = bytes.NewBuffer(data[1:])
@@ -91,39 +92,28 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 			fmt.Println(err)
 			return
 		}
-		room := JoinOrCreate(0, dp)
-		if room == nil {
-			fmt.Println("room create fail")
-			return
-		}
-		fmt.Println(joinGame)
-		if dp.game == nil {
-			d := &SingleDuel{}
-			d.players[0] = dp
-			dp.game = d
 
-		}
-		//var join = stoc.JoinGame{Info: host.HostInfo{
-		//	Lflist:        0,
-		//	Rule:          0,
-		//	Mode:          0,
-		//	DuleRule:      0,
-		//	NoCheckDeck:   false,
-		//	NoShuffleDeck: false,
-		//	StartLp:       0,
-		//	StartHand:     0,
-		//	DrawCount:     0,
-		//	TimeLimit:     0,
 		//}}
 		//暂时不知道什么意思 web客户端未使用到
-		dp.game.Write(dp, stoc.STOC_JOIN_GAME, &BytesMsg{67, 63, 66, 112, 0, 0, 5, 0, 0, 0, 0, 0, 64, 31, 0, 0, 5, 1, 240, 0})
+		dp.game.Write(dp, stoc.STOC_JOIN_GAME, &stoc.JoinGame{Info: host.HostInfo{
+			Lflist:        1883389763,
+			Rule:          0,
+			Mode:          0,
+			DuleRule:      5,
+			NoCheckDeck:   0,
+			NoShuffleDeck: 0,
+			StartLp:       8000,
+			StartHand:     5,
+			DrawCount:     1,
+			TimeLimit:     240,
+		}})
 		dp.game.Write(dp, stoc.STOC_TYPE_CHANGE, &BytesMsg{16})
 		//C++ 和C中都是以0为结尾。为了兼容C所以做的字符串末尾标识
 		s := BytesMsg(append(WSStr(dp.RealName), 0, 0))
 		dp.game.Write(dp, stoc.STOC_HS_PLAYER_ENTER, &s)
 	case ctos.CTOS_LEAVE_GAME:
 		dp.game.LeaveGame(dp)
-		Leave(dp)
+
 	}
 }
 func WSStr(arr []byte) []byte {
