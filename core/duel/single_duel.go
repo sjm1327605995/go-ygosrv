@@ -2,6 +2,8 @@ package duel
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
 	"go-ygosrv/core/msg/stoc"
 	"sync"
 )
@@ -66,9 +68,13 @@ func (receiver *SingleDuel) PlayerKick(dp *DuelPlayer, pos uint8) {
 	panic("implement me")
 }
 
-func (receiver *SingleDuel) UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer) {
-	//TODO implement me
-	panic("implement me")
+func (s *SingleDuel) UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer, length uint16) error {
+
+	var list = make([]int32, length/4)
+
+	err := binary.Read(reader, binary.LittleEndian, &list)
+	fmt.Println("cards:", list)
+	return err
 }
 
 func (receiver *SingleDuel) StartDuel(dp *DuelPlayer) {

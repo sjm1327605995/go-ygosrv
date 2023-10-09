@@ -16,7 +16,7 @@ const (
 var model DuelModeBase
 
 // HandleCTOSPacket 重构dp结构体优化调用链
-func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
+func HandleCTOSPacket(dp *DuelPlayer, data []byte, length uint16) {
 	var (
 		buf = bytes.NewBuffer(data[1:])
 	)
@@ -47,12 +47,16 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 	//		//开始了游戏
 	//		dp.game.Chat(dp, &chat)
 	//	}
-	//case ctos.CTOS_UPDATE_DECK:
-	//	if dp.game == nil {
-	//		return
-	//	}
-	//
-	//	dp.game.UpdateDeck(dp, buf)
+	case ctos.CTOS_UPDATE_DECK:
+		if dp.Room == nil || dp.Room.Game == nil {
+			return
+		}
+		//
+		err := dp.Room.Game.UpdateDeck(dp, buf, length)
+		if err != nil {
+			fmt.Println("cards err")
+
+		}
 	//case ctos.CTOS_HAND_RESULT:
 	//	if dp.game == nil {
 	//		return
@@ -118,16 +122,23 @@ func HandleCTOSPacket(dp *DuelPlayer, data []byte) {
 			TimeLimit:     240,
 		}})
 		//暂不考虑观战者
-		//var scpe stoc.HSPlayerEnter
-		//scpe.Pos = uint16(dp.Pos)
+		var scpe stoc.HSPlayerEnter
 
+		//不是第一个进入房间的玩家
+		if dp.Pos != 0 {
+			players := duelRoom.CurrentPlayers()
+			for i := range players {
+				scpe.Name = players[i].RealName
+				scpe.Pos = uint16(players[i].Pos)
+				duelRoom.Game.Write(dp, stoc.STOC_HS_PLAYER_ENTER, &scpe)
+			}
+		}
+		scpe.Name = dp.RealName
+		scpe.Pos = uint16(dp.Pos)
 		duelRoom.Game.Write(dp, stoc.STOC_TYPE_CHANGE, &typeChange)
-		//C++ 和C中都是以0为结尾。为了兼容C所以做的字符串末尾标识
-		s := BytesMsg(append(WSStr(dp.RealName), 0, 0))
-		//
-		duelRoom.Broadcast(stoc.STOC_HS_PLAYER_ENTER, &s)
+		duelRoom.Broadcast(stoc.STOC_HS_PLAYER_ENTER, &scpe)
 	case ctos.CTOS_LEAVE_GAME:
-		//dp.game.LeaveGame(dp)
+		dp.Room.LeaveGame(dp)
 
 	}
 }
@@ -138,5 +149,12 @@ func WSStr(arr []byte) []byte {
 			break
 		}
 	}
-	return arr[:i]
+	for {
+		if i > len(arr)-1 {
+			break
+		}
+		arr[i] = 0
+		i++
+	}
+	return arr
 }

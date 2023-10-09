@@ -23,8 +23,9 @@ func JoinOrCreateRoom(dp *DuelPlayer) *DuelRoom {
 		room.Players = make(map[string]*DuelPlayer, 2)
 		room.HostPlayer = dp
 		room.Game = &SingleDuel{}
-		dp.Room = room
+
 	}
+	dp.Room = room
 	oldDp, has := room.Players[dp.Name]
 	if has {
 		if oldDp == room.HostPlayer {
@@ -50,4 +51,20 @@ func (r *DuelRoom) Broadcast(proto uint8, msg BytesMessage) {
 	for i := range r.Players {
 		_ = r.Game.Write(r.Players[i], proto, msg)
 	}
+}
+
+func (r *DuelRoom) LeaveGame(dp *DuelPlayer) {
+
+	r.locker.Lock()
+	defer r.locker.Unlock()
+	delete(r.Players, dp.Name)
+	_ = dp.Conn.Close()
+}
+func (r *DuelRoom) CurrentPlayers() (players []*DuelPlayer) {
+	r.locker.RLock()
+	defer r.locker.RUnlock()
+	for i := range r.Players {
+		players = append(players, r.Players[i])
+	}
+	return
 }

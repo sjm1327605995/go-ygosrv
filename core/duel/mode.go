@@ -29,7 +29,7 @@ type DuelMode interface {
 	ToObserver(dp *DuelPlayer)
 	PlayerReady(dp *DuelPlayer, isReady bool)
 	PlayerKick(dp *DuelPlayer, pos uint8)
-	UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer)
+	UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer, length uint16) error
 	StartDuel(dp *DuelPlayer)
 	HandResult(dp *DuelPlayer, uint82 uint8)
 	TPResult(dp *DuelPlayer, uint82 uint8)
@@ -80,7 +80,7 @@ func (d *DuelModeBase) PlayerKick(dp *DuelPlayer, pos uint8) {
 	panic("implement me")
 }
 
-func (d *DuelModeBase) UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer) {
+func (d *DuelModeBase) UpdateDeck(dp *DuelPlayer, reader *bytes.Buffer, length uint16) error {
 	//TODO implement me
 	panic("implement me")
 }

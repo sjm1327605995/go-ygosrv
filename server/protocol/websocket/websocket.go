@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/gobwas/ws"
@@ -58,7 +59,7 @@ func (w *WsDecoder) Decode(buff *bytes.Buffer, player *duel.DuelPlayer) gnet.Act
 		}
 		if message.OpCode == ws.OpBinary {
 
-			duel.HandleCTOSPacket(player, message.Payload[2:])
+			duel.HandleCTOSPacket(player, message.Payload[2:], binary.LittleEndian.Uint16(message.Payload))
 		}
 	}
 	return gnet.None

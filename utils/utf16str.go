@@ -31,7 +31,9 @@ func UTF16ToStr(arr []byte) ([]byte, string, error) {
 		fmt.Println("解码失败:", err)
 		return nil, "", err
 	}
-	return arr[:last], string(str), nil
+	newArr := make([]byte, len(arr))
+	copy(newArr, arr)
+	return newArr, string(str), nil
 }
 func UTF16ToStrArr(arr []byte) ([]byte, error) {
 	if len(arr)%2 != 0 {

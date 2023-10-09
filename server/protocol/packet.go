@@ -60,7 +60,7 @@ func (wss *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 			ws.player.Protocol = duel.TCP
 			ws.Decoder = &tcp.TCPDecoder{}
 		}
-	case 1, 2:
+	case duel.WS, duel.TCP:
 
 	default:
 		return gnet.Close

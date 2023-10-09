@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"bytes"
+	"encoding/binary"
 	"github.com/panjf2000/gnet/v2"
 	"go-ygosrv/core/duel"
 )
@@ -23,8 +24,16 @@ func (t *TCPDecoder) Decode(buff *bytes.Buffer, player *duel.DuelPlayer) gnet.Ac
 	//	arr := buff.Next(lengthInt)
 	//
 	//}
+	if buff.Len() == 0 {
+		return gnet.None
+	}
+	var length uint16
+	err := binary.Read(buff, binary.LittleEndian, &length)
+	if err != nil {
+		return gnet.None
+	}
+	duel.HandleCTOSPacket(player, buff.Bytes(), length)
 
-	duel.HandleCTOSPacket(player, buff.Bytes()[2:])
 	buff.Reset()
 	return gnet.None
 }
