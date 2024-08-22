@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"io/ioutil"
-	"os"
 )
 
 type BinaryReader struct {
@@ -47,158 +45,105 @@ func (b *BinaryReader) ReadToEnd() []byte {
 	return b.Buffer.Next(b.Buffer.Len())
 }
 
-// Buffer implements interfaces implemented by files.
-// The main purpose of this type is to have an in memory replacement for a
-// file.
-type Buffer struct {
-	// Buff is the backing buffer
-	buff *bytes.Buffer
-	// Index indicates where in the buffer we are at
-	Index    int64
-	isClosed bool
+type MemoryStream struct {
+	buff []byte
+	loc  int
 }
 
-// New returns a new populated Buffer
-func New(b []byte) *Buffer {
-	return &Buffer{buff: bytes.NewBuffer(b)}
+// DefaultCapacity is the size in bytes of a new MemoryStream's backing buffer
+const DefaultCapacity = 512
+
+// NewMemoryStream New creates a new MemoryStream instance
+func NewMemoryStream() *MemoryStream {
+	return NewCapacity(DefaultCapacity)
 }
 
-// NewFromReader is a convenience method that returns a new populated Buffer
-// whose contents are sourced from a supplied reader by loading it entirely
-// into memory.
-func NewFromReader(reader io.Reader) (*Buffer, error) {
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	return New(data), nil
+// NewCapacity starts the returned MemoryStream with the given capacity
+func NewCapacity(cap int) *MemoryStream {
+	return &MemoryStream{buff: make([]byte, 0, cap), loc: 0}
 }
 
-// Bytes returns the bytes available until the end of the buffer.
-func (f *Buffer) Bytes() []byte {
-	if f.isClosed || f.Index >= int64(f.buff.Len()) {
-		return []byte{}
-	}
-	return f.buff.Bytes()[f.Index:]
-}
-
-// String implements the Stringer interface
-func (f *Buffer) String() string {
-	return string(f.buff.Bytes()[f.Index:])
-}
-
-// Read implements io.Reader https://golang.org/pkg/io/#Reader
-// Read reads up to len(p) bytes into p. It returns the number of bytes read (0 <= n <= len(p))
-// and any error encountered. Even if Read returns n < len(p), it may use all of p as scratch
-// space during the call. If some data is available but not len(p) bytes, Read conventionally
-// returns what is available instead of waiting for more.
-
-// When Read encounters an error or end-of-file condition after successfully reading n > 0 bytes,
-// it returns the number of bytes read. It may return the (non-nil) error from the same call or
-// return the error (and n == 0) from a subsequent call. An instance of this general case is
-// that a Reader returning a non-zero number of bytes at the end of the input stream may return
-// either err == EOF or err == nil. The next Read should return 0, EOF.
-func (f *Buffer) Read(b []byte) (n int, err error) {
-	if f.isClosed {
-		return 0, os.ErrClosed
-	}
-	if len(b) == 0 {
-		return 0, nil
-	}
-	if f.Index >= int64(f.buff.Len()) {
-		return 0, io.EOF
-	}
-	n, err = bytes.NewBuffer(f.buff.Bytes()[f.Index:]).Read(b)
-	f.Index += int64(n)
-
-	return n, err
-}
-
-// ReadAt implements io.ReaderAt https://golang.org/pkg/io/#ReaderAt
-// ReadAt reads len(p) bytes into p starting at offset off in the underlying input source.
-// It returns the number of bytes read (0 <= n <= len(p)) and any error encountered.
+// Seek sets the offset for the next Read or Write to offset, interpreted
+// according to whence: 0 means relative to the origin of the file, 1 means
+// relative to the current offset, and 2 means relative to the end. Seek
+// returns the new offset and an error, if any.
 //
-// When ReadAt returns n < len(p), it returns a non-nil error explaining why more bytes were not returned.
-// In this respect, ReadAt is stricter than Read.
-//
-// Even if ReadAt returns n < len(p), it may use all of p as scratch space during the call.
-// If some data is available but not len(p) bytes, ReadAt blocks until either all the data is available or an error occurs.
-// In this respect ReadAt is different from Read.
-//
-// If the n = len(p) bytes returned by ReadAt are at the end of the input source,
-// ReadAt may return either err == EOF or err == nil.
-//
-// If ReadAt is reading from an input source with a seek offset,
-// ReadAt should not affect nor be affected by the underlying seek offset.
-// Clients of ReadAt can execute parallel ReadAt calls on the same input source.
-func (f *Buffer) ReadAt(p []byte, off int64) (n int, err error) {
-	if f.isClosed {
-		return 0, os.ErrClosed
-	}
-	if off < 0 {
-		return 0, errors.New("filebuffer.ReadAt: negative offset")
-	}
-	reqLen := len(p)
-	buffLen := int64(f.buff.Len())
-	if off >= buffLen {
-		return 0, io.EOF
-	}
-
-	n = copy(p, f.buff.Bytes()[off:])
-	if n < reqLen {
-		err = io.EOF
-	}
-	return n, err
-}
-
-// Write implements io.Writer https://golang.org/pkg/io/#Writer
-// by appending the passed bytes to the buffer unless the buffer is closed or index negative.
-func (f *Buffer) Write(p []byte) (n int, err error) {
-	if f.isClosed {
-		return 0, os.ErrClosed
-	}
-	if f.Index < 0 {
-		return 0, io.EOF
-	}
-	// we might have rewinded, let's reset the buffer before appending to it
-	idx := int(f.Index)
-	buffLen := f.buff.Len()
-	if idx != buffLen && idx <= buffLen {
-		f.buff = bytes.NewBuffer(f.Bytes()[:f.Index])
-	}
-	n, err = f.buff.Write(p)
-
-	f.Index += int64(n)
-	return n, err
-}
-
-// Seek implements io.Seeker https://golang.org/pkg/io/#Seeker
-func (f *Buffer) Seek(offset int64, whence int) (idx int64, err error) {
-	if f.isClosed {
-		return 0, os.ErrClosed
-	}
-
-	var abs int64
+// Seeking to a negative offset is an error. Seeking to any positive offset is
+// legal. If the location is beyond the end of the current length, the position
+// will be placed at length.
+func (m *MemoryStream) Seek(offset int64, whence int) (int64, error) {
+	newLoc := m.loc
 	switch whence {
 	case 0:
-		abs = offset
+		newLoc = int(offset)
 	case 1:
-		abs = int64(f.Index) + offset
+		newLoc += int(offset)
 	case 2:
-		abs = int64(f.buff.Len()) + offset
-	default:
-		return 0, errors.New("filebuffer.Seek: invalid whence")
+		newLoc = len(m.buff) - int(offset)
 	}
-	if abs < 0 {
-		return 0, errors.New("filebuffer.Seek: negative position")
+
+	if newLoc < 0 {
+		return int64(m.loc), errors.New("Unable to seek to a location <0")
 	}
-	f.Index = abs
-	return abs, nil
+
+	if newLoc > len(m.buff) {
+		newLoc = len(m.buff)
+	}
+
+	m.loc = newLoc
+
+	return int64(m.loc), nil
 }
 
-// Close implements io.Closer https://golang.org/pkg/io/#Closer
-// It closes the buffer, rendering it unusable for I/O. It returns an error, if any.
-func (f *Buffer) Close() error {
-	f.isClosed = true
-	return nil
+// Read puts up to len(p) bytes into p. Will return the number of bytes read.
+func (m *MemoryStream) Read(p []byte) (n int, err error) {
+	n = copy(p, m.buff[m.loc:len(m.buff)])
+	m.loc += n
+
+	if m.loc == len(m.buff) {
+		return n, io.EOF
+	}
+
+	return n, nil
+}
+
+// Write writes the given bytes into the memory stream. If needed, the underlying
+// buffer will be expanded to fit the new bytes.
+func (m *MemoryStream) Write(p []byte) (n int, err error) {
+	// Do we have space?
+	if available := cap(m.buff) - m.loc; available < len(p) {
+		// How much should we expand by?
+		addCap := cap(m.buff)
+		if addCap < len(p) {
+			addCap = len(p)
+		}
+
+		newBuff := make([]byte, len(m.buff), cap(m.buff)+addCap)
+
+		copy(newBuff, m.buff)
+
+		m.buff = newBuff
+	}
+
+	// Write
+	n = copy(m.buff[m.loc:cap(m.buff)], p)
+	m.loc += n
+	if len(m.buff) < m.loc {
+		m.buff = m.buff[:m.loc]
+	}
+
+	return n, nil
+}
+
+// Bytes returns a copy of ALL valid bytes in the stream, regardless of the current
+// position.
+func (m *MemoryStream) Bytes() []byte {
+	b := make([]byte, len(m.buff))
+	copy(b, m.buff)
+	return b
+}
+
+// Rewind returns the stream to the beginning
+func (m *MemoryStream) Rewind() (int64, error) {
+	return m.Seek(0, 0)
 }

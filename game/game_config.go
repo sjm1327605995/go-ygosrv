@@ -45,7 +45,7 @@ func NewGameConfig(info string) *GameConfig {
 		config.StartHand = 5
 		config.DrawCount = 1
 		config.GameTimer = 120
-		config.Name = &GameManager{}.RandomRoomName()
+		//config.Name = &GameManager{}.RandomRoomName()
 	} else {
 		config.Load(info)
 	}
@@ -55,25 +55,25 @@ func NewGameConfig(info string) *GameConfig {
 
 func NewGameConfigFromPacket(packet *GameClientPacket) *GameConfig {
 	config := &GameConfig{}
-	config.LfList = BanlistManager.GetIndex(packet.ReadUInt32())
-	config.Rule = int(packet.ReadByte())
-	config.Mode = int(packet.ReadByte())
-	config.EnablePriority = packet.ReadByte() != 0
-	config.NoCheckDeck = packet.ReadByte() != 0
-	config.NoShuffleDeck = packet.ReadByte() != 0
-	// C++ padding: 5 bytes + 3 bytes = 8 bytes
-	for i := 0; i < 3; i++ {
-		packet.ReadByte()
-	}
-	config.StartLp = int(packet.ReadInt32())
-	config.StartHand = int(packet.ReadByte())
-	config.DrawCount = int(packet.ReadByte())
-	config.GameTimer = int(packet.ReadInt16())
-	packet.ReadUnicode(20)
-	config.Name = packet.ReadUnicode(30)
-	if config.Name == "" {
-		config.Name = GameManager.RandomRoomName()
-	}
+	//config.LfList = BanlistManager.GetIndex(packet.ReadUInt32())
+	//config.Rule = int(packet.ReadByte())
+	//config.Mode = int(packet.ReadByte())
+	//config.EnablePriority = packet.ReadByte() != 0
+	//config.NoCheckDeck = packet.ReadByte() != 0
+	//config.NoShuffleDeck = packet.ReadByte() != 0
+	//// C++ padding: 5 bytes + 3 bytes = 8 bytes
+	//for i := 0; i < 3; i++ {
+	//	packet.ReadByte()
+	//}
+	//config.StartLp = int(packet.ReadInt32())
+	//config.StartHand = int(packet.ReadByte())
+	//config.DrawCount = int(packet.ReadByte())
+	//config.GameTimer = int(packet.ReadInt16())
+	//packet.ReadUnicode(20)
+	//config.Name = packet.ReadUnicode(30)
+	//if config.Name == "" {
+	//	config.Name = GameManager.RandomRoomName()
+	//}
 	return config
 }
 
@@ -90,7 +90,7 @@ func (config *GameConfig) Load(gameInfo string) {
 			config.StartHand = 5
 			config.DrawCount = 1
 			config.GameTimer = 120
-			config.Name = GameManager.RandomRoomName()
+			//config.Name = GameManager.RandomRoomName()
 		}
 	}()
 

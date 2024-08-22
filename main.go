@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
@@ -12,10 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sjm1327605995/go-ygosrv/game/ocgcore"
 	"github.com/spf13/viper"
-	"path/filepath"
-
 	"log"
 )
 
@@ -25,17 +23,18 @@ func main() {
 	viper.SetDefault("RootPath", ".")
 	viper.SetDefault("DatabaseFile", "cards.cdb")
 	game.InitBanListManager(viper.GetString("BanlistFile"))
-
-	_, err := game.InitCardManager(filepath.Join(viper.GetString("RootPath"), viper.GetString("DatabaseFile")))
+	viper.Set("DatabaseFile", "E:/YGOPro2/cdb/cards.cdb")
+	viper.SetDefault("ScriptDirectory", "E:/YGOPro2/script")
+	_, err := game.InitCardManager(viper.GetString("DatabaseFile"))
 	if err != nil {
 		panic(err)
 	}
-	ocgcore.InitOcrCore("ocgcore.dll", viper.GetString("ScriptDirectory"), viper.GetString("DatabaseFile"))
+	game.InitOcrCore("ocgcore.dll", viper.GetString("ScriptDirectory"), viper.GetString("DatabaseFile"))
 
 	//ClientVersion = Config.GetUInt("ClientVersion", ClientVersion);
 
-	addr := fmt.Sprintf("tcp://127.0.0.1:8080")
-	Game := &game.IBaseGame{}
+	addr := fmt.Sprintf("tcp://:8080")
+	Game = game.NewGame()
 	err = Game.Start()
 	if err != nil {
 		panic(err)
@@ -105,7 +104,7 @@ func (wss *Server) OnOpen(c gnet.Conn) ([]byte, gnet.Action) {
 	ctx.msgChan = make(chan *bytes.Reader, 10)
 	p := game.NewPlayer(Game, ygoclient.NewClient(c))
 	ctx.player = p
-
+	p.Game = Game
 	c.SetContext(ctx)
 	go ctx.Msg()
 	return nil, gnet.None
@@ -114,6 +113,7 @@ func (wss *Server) OnOpen(c gnet.Conn) ([]byte, gnet.Action) {
 func (wss *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	ctx := c.Context().(*Context)
 	ctx.player.Disconnect()
+
 	close(ctx.msgChan)
 	logging.Infof("conn[%v] disconnected", c.RemoteAddr().String())
 	return gnet.None
@@ -124,26 +124,34 @@ var (
 )
 
 func (wss *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
+	fmt.Println("收到消息")
 	ctx := c.Context().(*Context)
-	msgLen, err := c.Next(2)
-	if err != nil {
-		return gnet.Close
+	if ctx.MsgContentLen == 0 {
+		msgLen, err := c.Next(2)
+		if err != nil {
+			return gnet.Close
+		}
+		if len(msgLen) < 2 {
+			return gnet.None
+		}
+		ctx.MsgContentLen = int(binary.LittleEndian.Uint16(msgLen))
+
 	}
-	if len(msgLen) < 2 {
+	if c.InboundBuffered() < ctx.MsgContentLen {
 		return gnet.None
 	}
-	msgLength := int(binary.LittleEndian.Uint16(msgLen))
-	if c.InboundBuffered() < msgLength {
-		return gnet.None
-	}
-	arr, err := c.Next(msgLength)
+	arr, err := c.Next(ctx.MsgContentLen)
 	if err != nil {
+		fmt.Println(err)
 		return gnet.Close
 	}
+
+	fmt.Println(hex.EncodeToString(arr))
 	buffer := make([]byte, len(arr))
 	copy(buffer, arr)
 	reader := bytes.NewReader(buffer)
 	ctx.msgChan <- reader
+	ctx.MsgContentLen = 0
 	return gnet.None
 }
 
@@ -159,12 +167,17 @@ const (
 )
 
 type Context struct {
-	player  *game.Player
-	msgChan chan *bytes.Reader
+	player        *game.Player
+	MsgContentLen int
+	msgChan       chan *bytes.Reader
 }
 
 func (c *Context) Msg() {
 	for v := range c.msgChan {
-		c.player.Parse(v)
+		err := c.player.Parse(v)
+		if err != nil {
+			fmt.Println(err)
+
+		}
 	}
 }

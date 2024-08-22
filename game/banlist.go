@@ -1,11 +1,5 @@
 package game
 
-
-// Translated from C# to Go
-package game
-
-import "fmt"
-
 type Banlist struct {
 	BannedIds      []int
 	LimitedIds     []int
@@ -18,7 +12,7 @@ func NewBanlist() *Banlist {
 		BannedIds:      []int{},
 		LimitedIds:     []int{},
 		SemiLimitedIds: []int{},
-		Hash:          0x7dfcee6a,
+		Hash:           0x7dfcee6a,
 	}
 }
 

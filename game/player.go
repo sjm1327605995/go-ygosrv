@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"github.com/sjm1327605995/go-ygosrv/game/ygoclient"
 	"github.com/sjm1327605995/go-ygosrv/game/ygoclient/enum/network/ctos"
 	"github.com/sjm1327605995/go-ygosrv/game/ygoclient/enum/network/gamestate"
@@ -33,7 +34,7 @@ func NewPlayer(game *IBaseGame, client *ygoclient.YGOClient) *Player {
 	}
 
 }
-func (p *Player) Send(data io.Reader) error {
+func (p *Player) Send(data io.ReadSeeker) error {
 	return p.client.Send(data)
 }
 func (p *Player) Disconnect() {
@@ -55,14 +56,18 @@ func (p *Player) Equals(player *Player) bool {
 func (p *Player) Parse(packet *bytes.Reader) error {
 	msgTp, _ := packet.ReadByte()
 	var msgErr error
+	fmt.Println("msg", msgTp)
 	switch msgTp {
 	case ctos.PlayerInfo:
+		fmt.Println("PlayerInfo")
 		msgErr = p.OnPlayerInfo(packet)
 
 	case ctos.JoinGame:
+		fmt.Println("JoinGame")
 		msgErr = p.OnJoinGame(packet)
 
 	case ctos.CreateGame:
+		fmt.Println("CreateGame")
 		msgErr = p.OnCreateGame(packet)
 	}
 	if !p.IsAuthenticated {
@@ -148,9 +153,9 @@ func (p *Player) OnCreateGame(packet *bytes.Reader) error {
 }
 func (p *Player) OnJoinGame(packet *bytes.Reader) error {
 
-	if p.Name != "" || p.Type != player.Undefined {
-		return nil
-	}
+	//if p.Name != "" || p.Type != player.Undefined {
+	//	return nil
+	//}
 
 	var (
 		version   int16

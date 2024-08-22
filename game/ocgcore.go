@@ -1,10 +1,9 @@
-package ocgcore
+package game
 
 import "C"
 import (
 	"fmt"
 	"github.com/sjm1327605995/go-ygocore"
-	"github.com/sjm1327605995/go-ygosrv/game"
 	"os"
 	"path/filepath"
 )
@@ -92,10 +91,12 @@ func InitOcrCore(libPath, scriptPath string, databaseFile string) {
 	YGOCore = ygocore.NewYGOCore(libPath,
 		func(scriptName string) (data []byte) {
 			base := filepath.Base(scriptName)
+			fmt.Println(base)
 			data, _ = os.ReadFile(filepath.Join(scriptPath, base))
 			return
 		}, func(cardId int32) *ygocore.CardData {
-			card := game.GlobalCardManager.GetCard(cardId)
+			card := GlobalCardManager.GetCard(cardId)
+			fmt.Println("card", card)
 			if card == nil {
 				return nil
 			}

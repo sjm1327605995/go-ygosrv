@@ -66,7 +66,8 @@ func (mt *MtRandom) NextState() {
 }
 
 func (mt *MtRandom) Twist(u, v uint) uint {
-	return (mt.MixBits(u, v) >> 1) ^ ((v & 1) != 0)
+	//return (mt.MixBits(u, v) >> 1) ^ ((v & 1) != 0)
+	return 0
 }
 
 func (mt *MtRandom) MixBits(u, v uint) uint {

@@ -2,61 +2,65 @@ package game
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/sjm1327605995/go-ygosrv/utils"
-
-	"github.com/sjm1327605995/go-ygosrv/game/ygoclient/enum/network/stoc"
-
 	"unicode/utf16"
 )
 
 type GamePacketFactory struct {
-	*utils.Buffer
-}
-
-func (gpf *GamePacketFactory) Read(p []byte) (n int, err error) {
-
-	return gpf.Buffer.Read(p)
+	*utils.MemoryStream
 }
 
 func NewGamePacketFactory() *GamePacketFactory {
-	return &GamePacketFactory{Buffer: utils.New(make([]byte, 0))}
+	return &GamePacketFactory{MemoryStream: utils.NewMemoryStream()}
 }
 
 func (gpf *GamePacketFactory) Create(message uint8) *GamePacketFactory {
-	_, _ = gpf.Buffer.Write([]byte{message})
+	_, _ = gpf.MemoryStream.Write([]byte{message})
 	return gpf
 }
 func (gpf *GamePacketFactory) WriteByte(b uint8) *GamePacketFactory {
-	_, _ = gpf.Buffer.Write([]byte{b})
+	_, _ = gpf.MemoryStream.Write([]byte{b})
 	return gpf
 }
-func (gpf *GamePacketFactory) CreateGameMessage(message uint8) *GamePacketFactory {
-	_, _ = gpf.Buffer.Write([]byte{stoc.GameMsg, message})
-	return gpf
-}
+
 func (gpf *GamePacketFactory) WriteUnicode(text string, length int) {
-	unicode := utf16.Encode([]rune(text))
-	if len(unicode) > length {
-		unicode = unicode[:length]
+
+	// Convert the string to UTF-16 encoded bytes.
+	unicodeBytes := utf16.Encode([]rune(text))
+	if len(unicodeBytes) > length*2 {
+		unicodeBytes = unicodeBytes[:length*2]
+		_ = binary.Write(gpf.MemoryStream, binary.LittleEndian, unicodeBytes)
+	} else {
+		unicodeBytes = append(unicodeBytes, make([]uint16, length-len(unicodeBytes))...)
 	}
-	_ = binary.Write(gpf.Buffer, binary.LittleEndian, unicode)
+	_ = binary.Write(gpf.MemoryStream, binary.LittleEndian, unicodeBytes)
 }
-func (gpf *GamePacketFactory) Write(value interface{}) *GamePacketFactory {
+func (gpf *GamePacketFactory) Write(value any) *GamePacketFactory {
 	switch t := value.(type) {
 	case string:
-		_, _ = gpf.Buffer.Write([]byte(t))
+		_, _ = gpf.MemoryStream.Write([]byte(t))
 	case []byte:
-		_, _ = gpf.Buffer.Write(t)
+		_, _ = gpf.MemoryStream.Write(t)
+	case int:
+		fmt.Println("int")
+		err := binary.Write(gpf.MemoryStream, binary.LittleEndian, uint8(t))
+		if err != nil {
+			fmt.Println(err)
+		}
 	default:
-		_ = binary.Write(gpf.Buffer, binary.LittleEndian, value)
+		err := binary.Write(gpf.MemoryStream, binary.LittleEndian, t)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	return gpf
 }
 func (gpf *GamePacketFactory) WriteLen(arr []byte, length int) *GamePacketFactory {
-	_, _ = gpf.Buffer.Write(arr[:length])
+	_, _ = gpf.MemoryStream.Write(arr[:length])
 	return gpf
 }
 func (gpf *GamePacketFactory) Bytes() []byte {
-	return gpf.Buffer.Bytes()
+	return gpf.MemoryStream.Bytes()
 }

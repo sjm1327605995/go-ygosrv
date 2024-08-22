@@ -2,6 +2,7 @@ package game
 
 import (
 	"bufio"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -45,7 +46,7 @@ func (config *ServerConfig) Load(file string) bool {
 
 	fileHandle, err := os.Open(file)
 	if err != nil {
-		Logger.WriteError(err)
+		slog.Error("Failed to open config file", err.Error())
 		return false
 	}
 	defer fileHandle.Close()
@@ -98,7 +99,7 @@ func (config *ServerConfig) Load(file string) bool {
 	}
 
 	if config.HandShuffle {
-		Logger.WriteLine("Warning: Hand shuffle requires a custom ocgcore to work.")
+		slog.Warn("Warning: Hand shuffle requires a custom ocgcore to work.")
 	}
 	return true
 }

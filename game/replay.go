@@ -24,10 +24,10 @@ type Replay struct {
 func NewReplay(seed uint32, tag bool) *Replay {
 	replay := &Replay{
 		Header: ReplayHeader{
-			Id:      0x31707279,
-			Version: uint32(Program.Config.ClientVersion),
-			Flag:    0,
-			Seed:    seed,
+			Id: 0x31707279,
+			//	Version: uint32(Program.Config.ClientVersion),
+			Flag: 0,
+			Seed: seed,
 		},
 		memoryStream: new(bytes.Buffer),
 		Writer:       new(bytes.Buffer),

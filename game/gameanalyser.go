@@ -270,7 +270,7 @@ func (g *GameAnalyser) OnHint(msgTp uint8, reader *bytes.Reader) {
 	//reader.ReadInt32()
 
 	packet := NewGamePacketFactory().Create(msgTp)
-	_, _ = io.Copy(packet.Buffer, reader)
+	_, _ = io.Copy(packet.MemoryStream, reader)
 
 	switch tp {
 	case 1, 2, 3, 4, 5:
@@ -363,7 +363,7 @@ func (g *GameAnalyser) OnSelectCard(msgTp uint8, reader *bytes.Reader) {
 
 	player, _ := reader.ReadByte()
 	packet.Write(player)
-	io.CopyN(packet.Buffer, reader, 3)
+	io.CopyN(packet.MemoryStream, reader, 3)
 
 	count, _ := reader.ReadByte()
 	packet.Write(count)
@@ -397,7 +397,7 @@ func (g *GameAnalyser) OnSelectUnselect(msgTp uint8, reader *bytes.Reader) {
 
 	player, _ := reader.ReadByte()
 	packet.Write(player)
-	io.CopyN(packet.Buffer, reader, 4)
+	io.CopyN(packet.MemoryStream, reader, 4)
 
 	count, _ := reader.ReadByte()
 
@@ -503,7 +503,7 @@ func (g *GameAnalyser) OnConfirmCards(msgTp uint8, reader *bytes.Reader) {
 
 	packet := NewGamePacketFactory().Create(msgTp)
 	buffer, _ := io.ReadAll(reader)
-	io.Copy(packet.Buffer, reader)
+	io.Copy(packet.MemoryStream, reader)
 
 	if buffer[7] == card.Hand {
 		g.Game.SendToAll(packet)
@@ -517,11 +517,11 @@ func (g *GameAnalyser) OnShuffleHand(msgTp uint8, reader *bytes.Reader) {
 	player, _ := reader.ReadByte()
 
 	count, _ := reader.ReadByte()
-	packet.Buffer.Write([]byte{player, count})
+	packet.MemoryStream.Write([]byte{player, count})
 	reader.Seek(int64(count)*4, io.SeekCurrent)
 	var i byte
 	for i = 0; i < count; i++ {
-		packet.Write(0)
+		packet.Write(byte(0))
 	}
 
 	g.SendToPlayer(msgTp, reader, int(player))
@@ -533,12 +533,12 @@ func (g *GameAnalyser) OnShuffleExtra(msgTp uint8, reader *bytes.Reader) {
 	player, _ := reader.ReadByte()
 
 	count, _ := reader.ReadByte()
-	packet.Buffer.Write([]byte{player, count})
+	packet.MemoryStream.Write([]byte{player, count})
 
 	reader.Seek(int64(count)*4, io.SeekCurrent)
 	var i byte
 	for i = 0; i < count; i++ {
-		packet.Write(0)
+		packet.Write(byte(0))
 	}
 	g.SendToPlayer(msgTp, reader, int(player))
 	g.Game.SendToAllButInt(packet, int(player))
@@ -605,7 +605,7 @@ func (g *GameAnalyser) OnMove(msgTp uint8, reader *bytes.Reader) {
 	packet.Write(raw)
 	if !((cl&card.Grave|card.Overlay) != 0) && ((cl&card.Deck|card.Hand) != 0) || (cp&card.FaceDown) != 0 {
 		packet.Seek(2, io.SeekStart)
-		packet.Write(0)
+		packet.Write(byte(0))
 	}
 	g.Game.SendToAllButInt(packet, cc)
 
@@ -646,7 +646,7 @@ func (g *GameAnalyser) OnSet(msgTp uint8, reader *bytes.Reader) {
 	_, _ = reader.Read(raw)
 
 	packet := NewGamePacketFactory().Create(msg.Set)
-	packet.Write(0)
+	packet.Write(byte(0))
 	packet.Write(raw)
 	g.Game.SendToAll(packet)
 }
@@ -684,7 +684,7 @@ func (g *GameAnalyser) OnDraw(msgTp uint8, reader *bytes.Reader) {
 	player, _ := reader.ReadByte()
 
 	count, _ := reader.ReadByte()
-	packet.Buffer.Write([]byte{player, count})
+	packet.MemoryStream.Write([]byte{player, count})
 	var i byte
 	for i = 0; i < count; i++ {
 		var (
@@ -695,7 +695,7 @@ func (g *GameAnalyser) OnDraw(msgTp uint8, reader *bytes.Reader) {
 		if (code & 0x80000000) != 0 {
 			packet.Write(code)
 		} else {
-			packet.Write(0)
+			packet.Write(byte(0))
 		}
 	}
 	g.SendToTeam(msgTp, reader, int(player))
@@ -803,7 +803,7 @@ func (g *GameAnalyser) OnTagSwap(msgTp uint8, reader *bytes.Reader) {
 
 	player, _ := reader.ReadByte()
 	packet.WriteByte(player)
-	io.CopyN(packet.Buffer, reader, 1) // mcount
+	io.CopyN(packet.MemoryStream, reader, 1) // mcount
 
 	ecount, _ := reader.ReadByte()
 	packet.WriteByte(ecount)
@@ -813,7 +813,7 @@ func (g *GameAnalyser) OnTagSwap(msgTp uint8, reader *bytes.Reader) {
 	hcount, _ := reader.ReadByte()
 	packet.WriteByte(hcount)
 
-	io.CopyN(packet.Buffer, reader, 4) // topcode
+	io.CopyN(packet.MemoryStream, reader, 4) // topcode
 	n := int(hcount) + int(ecount)
 	for i := 0; i < n; i++ {
 		var code uint32
@@ -821,7 +821,7 @@ func (g *GameAnalyser) OnTagSwap(msgTp uint8, reader *bytes.Reader) {
 		if (code & 0x80000000) != 0 {
 			packet.Write(code)
 		} else {
-			packet.Write(0)
+			packet.Write(byte(0))
 		}
 	}
 
@@ -845,7 +845,7 @@ func (g *GameAnalyser) OnTagSwap(msgTp uint8, reader *bytes.Reader) {
 func (g *GameAnalyser) SendToAll(msg uint8, reader *bytes.Reader) {
 
 	packet := NewGamePacketFactory().Create(msg)
-	io.Copy(packet.Buffer, reader)
+	io.Copy(packet.MemoryStream, reader)
 	g.Game.SendToAll(packet)
 }
 
@@ -864,7 +864,7 @@ func (g *GameAnalyser) SendToPlayer(msgTp uint8, reader *bytes.Reader, player in
 		return
 	}
 	packet := NewGamePacketFactory().Create(msgTp)
-	_, _ = io.Copy(packet.Buffer, reader)
+	_, _ = io.Copy(packet.MemoryStream, reader)
 	g.Game.CurPlayers[player].Send(packet)
 }
 
@@ -874,11 +874,11 @@ func (g *GameAnalyser) SendToTeam(msgTp uint8, reader *bytes.Reader, player int)
 	}
 
 	packet := NewGamePacketFactory().Create(msgTp)
-	_, _ = io.Copy(packet.Buffer, reader)
+	_, _ = io.Copy(packet.MemoryStream, reader)
 	g.Game.SendToTeam(packet, player)
 }
 
-func (g *GameAnalyser) SendToOpponentTeam(packet io.Reader, player int) {
+func (g *GameAnalyser) SendToOpponentTeam(packet io.ReadSeeker, player int) {
 	if player != 0 && player != 1 {
 		return
 	}

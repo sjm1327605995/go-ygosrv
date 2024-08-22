@@ -20,20 +20,18 @@ func InitCardManager(file string) (*CardManager, error) {
 	if err != nil {
 		return nil, err
 	}
-	tx := DB.Exec("SELECT id, ot, alias, setcode, type, level, race, attribute, atk, def FROM datas")
+	var cardList []*Datas
+	tx := DB.Select("id", "ot", "alias", "setcode", "type", "level", "race", "attribute", "atk", "def").Find(&cardList)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
-	var cardList []*Card
-	err = tx.Scan(&cardList).Error
-	if err != nil {
-		return nil, err
-	}
+
 	var manager = &CardManager{
 		cards: make(map[int32]*Card, len(cardList)),
 	}
 	for i := range cardList {
-		manager.cards[cardList[i].Id] = cardList[i]
+		card := cardList[i].Card()
+		manager.cards[card.Id] = card
 	}
 	GlobalCardManager = manager
 	return manager, nil

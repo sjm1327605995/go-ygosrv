@@ -112,7 +112,8 @@ type IBaseGame struct {
 	//public event Action<object, PlayerChatEventArgs> OnPlayerChat;
 }
 
-func (g *IBaseGame) Game() {
+func NewGame() *IBaseGame {
+	g := new(IBaseGame)
 	viper.SetDefault("Rule", -1)
 	viper.SetDefault("MainDeckMinSize", 40)
 	viper.SetDefault("MainDeckMaxSize", 60)
@@ -145,8 +146,8 @@ func (g *IBaseGame) Game() {
 	g.Winner = -1
 	g.Observers = set.New[*Player]()
 	lfList := viper.GetInt("Banlist")
-	if lfList >= 0 && lfList < len(banlistManager.Banlists) {
-		b := banlistManager.Banlists[lfList]
+	if lfList >= 0 && lfList < len(BanListManager.Banlists) {
+		b := BanListManager.Banlists[lfList]
 		g.Banlist = &b
 	}
 	g.StartLp = viper.GetInt32("StartLp")
@@ -160,7 +161,8 @@ func (g *IBaseGame) Game() {
 	g.Timer = int16(viper.GetInt("GameTimer"))
 
 	// _server = server;
-	//            _analyser = new GameAnalyser(this);
+	g._analyser = &GameAnalyser{Game: g}
+	return g
 }
 func (g *IBaseGame) SetRules(packet *bytes.Reader) error {
 	var (
@@ -214,13 +216,13 @@ func (g *IBaseGame) Stop() error {
 	//}
 	return nil
 }
-func (g *IBaseGame) SendToAll(reader io.Reader) error {
+func (g *IBaseGame) SendToAll(reader io.ReadSeeker) error {
 	g.SendToPlayers(reader)
 
 	g.SendToObservers(reader)
 	return nil
 }
-func (g *IBaseGame) SendToAllButPlayer(reader io.Reader, player *Player) error {
+func (g *IBaseGame) SendToAllButPlayer(reader io.ReadSeeker, player *Player) error {
 
 	for i := range g.Players {
 		if g.Players[i] != nil && !g.Players[i].Equals(player) {
@@ -235,7 +237,7 @@ func (g *IBaseGame) SendToAllButPlayer(reader io.Reader, player *Player) error {
 	})
 	return nil
 }
-func (g *IBaseGame) SendToAllButInt(reader io.Reader, except int) error {
+func (g *IBaseGame) SendToAllButInt(reader io.ReadSeeker, except int) error {
 	if except < len(g.CurPlayers) {
 		g.SendToAllButPlayer(reader, g.CurPlayers[except])
 	} else {
@@ -245,23 +247,27 @@ func (g *IBaseGame) SendToAllButInt(reader io.Reader, except int) error {
 	return nil
 }
 
-func (g *IBaseGame) SendToPlayers(packet io.Reader) {
+func (g *IBaseGame) SendToPlayers(packet io.ReadSeeker) {
+
 	for _, player := range g.Players {
 		if player != nil {
 			player.Send(packet)
+
 		}
 	}
 }
 
-func (g *IBaseGame) SendToObservers(packet io.Reader) {
+func (g *IBaseGame) SendToObservers(packet io.ReadSeeker) {
 	g.Observers.Iterate(func(player *Player) {
 		player.Send(packet)
 	})
 
 }
 
-func (g *IBaseGame) SendToTeam(packet io.Reader, team int) {
+func (g *IBaseGame) SendToTeam(packet io.ReadSeeker, team int) {
+
 	if !g.IsTag {
+
 		g.Players[team].Send(packet)
 	} else if team == 0 {
 		g.Players[0].Send(packet)
@@ -276,9 +282,18 @@ func (g *IBaseGame) AddPlayer(player *Player) error {
 	if g.State != gamestate.Lobby {
 		player.Type = player2.Observer
 		if g.State != gamestate.End {
-			g.SendJoinGame(player)
-			player.SendTypeChange()
-			player.Send(NewGamePacketFactory().CreateGameMessage(stoc.DuelStart))
+			err := g.SendJoinGame(player)
+			if err != nil {
+				return err
+			}
+			err = player.SendTypeChange()
+			if err != nil {
+				return err
+			}
+			err = player.Send(NewGamePacketFactory().Create(stoc.DuelStart))
+			if err != nil {
+				return err
+			}
 			g.Observers.Add(player)
 			if g.State == gamestate.Duel {
 				g.InitNewSpectator(player)
@@ -298,9 +313,9 @@ func (g *IBaseGame) AddPlayer(player *Player) error {
 	pos := g.GetAvailablePlayerPos()
 	if pos != -1 {
 
-		enter := NewGamePacketFactory().CreateGameMessage(stoc.HsPlayerEnter)
+		enter := NewGamePacketFactory().Create(stoc.HsPlayerEnter)
 		enter.WriteUnicode(player.Name, 20)
-		enter.Write(pos)
+		enter.Write(uint8(pos))
 		//padding
 		enter.Write(uint8(0))
 		g.SendToAll(enter)
@@ -310,7 +325,7 @@ func (g *IBaseGame) AddPlayer(player *Player) error {
 		player.Type = pos
 	} else {
 
-		watch := NewGamePacketFactory().CreateGameMessage(stoc.HsWatchChange)
+		watch := NewGamePacketFactory().Create(stoc.HsWatchChange)
 		watch.Write(int16(g.Observers.Size() + 1))
 		g.SendToAll(watch)
 
@@ -321,11 +336,12 @@ func (g *IBaseGame) AddPlayer(player *Player) error {
 
 	g.SendJoinGame(player)
 	player.SendTypeChange()
-
+	//2b0020320032003200000031000000310000000000000000000000800d00c0597f0000cccccccccccc00000000
+	//2c000120320032003200000000000000000000000000000000000000000000000000000000000000000000000000
 	for i := 0; i < len(g.Players); i++ {
 		if g.Players[i] != nil {
 
-			enter := NewGamePacketFactory().CreateGameMessage(stoc.HsPlayerEnter)
+			enter := NewGamePacketFactory().Create(stoc.HsPlayerEnter)
 			enter.WriteUnicode(g.Players[i].Name, 20)
 			enter.Write(byte(i))
 			//padding
@@ -334,7 +350,7 @@ func (g *IBaseGame) AddPlayer(player *Player) error {
 
 			if g.IsReady[i] {
 
-				change := NewGamePacketFactory().CreateGameMessage(stoc.HsPlayerChange)
+				change := NewGamePacketFactory().Create(stoc.HsPlayerChange)
 				change.Write((byte)((i << 4) + player2.Ready))
 				player.Send(change)
 			}
@@ -343,7 +359,7 @@ func (g *IBaseGame) AddPlayer(player *Player) error {
 
 	if g.Observers.Size() > 0 {
 
-		nwatch := NewGamePacketFactory().CreateGameMessage(stoc.HsWatchChange)
+		nwatch := NewGamePacketFactory().Create(stoc.HsWatchChange)
 		nwatch.Write(int16(g.Observers.Size()))
 		player.Send(nwatch)
 	}
@@ -872,7 +888,7 @@ func (g *IBaseGame) SendToCorrectDestination(player int, location uint8, result 
 	update = NewGamePacketFactory().Create(msg.UpdateData)
 	update.Write(byte(player))
 	update.Write(location)
-	g.WritePublicCards(update.Buffer, result)
+	g.WritePublicCards(update.MemoryStream, result)
 
 	if observer == nil {
 		g.SendToTeam(update, 1-player)
